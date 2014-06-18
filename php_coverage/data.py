@@ -1,6 +1,7 @@
 import os
 import xml.etree.ElementTree
-
+from php_coverage.debug import debug_message
+import json
 
 class CoverageData():
 
@@ -15,18 +16,19 @@ class CoverageData():
 
     def is_loaded(self):
         """
-        Checks if the XML data is loaded from the coverage file.
+        Checks if the JSON data is loaded from the coverage file.
         """
         return not self.elements is None
 
     def load(self):
         """
-        Loads the XML data from the coverage file.
+        Loads the JSON data from the coverage file.
         """
         self.files = {}
         if os.path.exists(self.coverage_file):
-            root = xml.etree.ElementTree.parse(self.coverage_file)
-            self.elements = root.findall('./project//file')
+            f=open(self.coverage_file)
+            self.elements = json.load(f)
+            f.close()
         else:
             self.elements = []
 
@@ -34,7 +36,9 @@ class CoverageData():
         """
         Normalises a filename to aid comparisons.
         """
-        return os.path.normcase(os.path.realpath(filename))
+        result = os.path.normcase(os.path.realpath(filename))
+        pos = result.find('/code/')
+        return result[pos+6:]
 
     def get_file(self, filename):
         """
@@ -50,12 +54,11 @@ class CoverageData():
         if filename not in self.files:
             self.files[filename] = None
 
-            # find coverage data in the parsed XML coverage file
+            # find coverage data in the parsed JSON coverage file
             for data in self.elements:
-                if self.normalise(data.get('name')) == filename:
+                if self.normalise(data) == filename:
                     # create FileCoverage with the data
-                    self.files[filename] = FileCoverage(filename, data)
-
+                    self.files[filename] = FileCoverage(filename, self.elements[data])
         return self.files[filename]
 
 
@@ -94,33 +97,35 @@ class FileCoverage():
         """
         Parses the coverage data into structured data.
         """
-        metrics = self.data.find('./metrics')
+        # metrics = self.data.find('./metrics')
 
-        self.num_lines = int(metrics.get('loc'))
-        self.covered = int(metrics.get('coveredstatements'))
-        self.statements = int(metrics.get('statements'))
+        # self.num_lines = int(metrics.get('loc'))
+        self.num_lines = self.data['totalLines']
+        # self.covered = int(metrics.get('coveredstatements'))
+        # self.statements = int(metrics.get('statements'))
 
         self.good_lines = []
         self.bad_lines = []
 
-        for line in self.data.findall('line'):
+        # for line in self.data.findall('line'):
             # skip non-statement lines
-            if line.get('type') != 'stmt':
-                continue
+            # if line.get('type') != 'stmt':
+                # continue
 
-            line_number = int(line.get('num'))
-            test_count = int(line.get('count'))
+            # line_number = int(line.get('num'))
+            # test_count = int(line.get('count'))
 
             # quirks in the coverage data: skip line #0 and any
             # lines greater than the number of lines in the file
-            if line_number == 0 or line_number > self.num_lines:
-                continue
+            # if line_number == 0 or line_number > self.num_lines:
+                # continue
 
             # add this line number to good_lines or bad_lines depending
             # on whether it's covered by at least one test or not
-            dest = self.good_lines if test_count > 0 else self.bad_lines
-            dest.append(line_number)
-
+            # dest = self.good_lines if test_count > 0 else self.bad_lines
+            # dest.append(line_number)
+        for line in self.data['touchedLines']:
+            self.good_lines.append(line)
         self.parsed = True
 
     def __getattr__(self, name):
@@ -129,10 +134,10 @@ class FileCoverage():
         """
         methods = [
             'num_lines',
-            'covered',
-            'statements',
+            # 'covered',
+            # 'statements',
             'good_lines',
-            'bad_lines',
+            # 'bad_lines',
         ]
 
         if name in methods:
