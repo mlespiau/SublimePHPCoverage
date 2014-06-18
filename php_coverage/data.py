@@ -26,11 +26,14 @@ class CoverageData():
         """
         self.files = {}
         if os.path.exists(self.coverage_file):
+            self.elements = {}
             f=open(self.coverage_file)
-            self.elements = json.load(f)
+            data = json.load(f)
+            for item in data:
+                self.elements[self.normalise(item)] = data[item]
             f.close()
         else:
-            self.elements = []
+            self.elements = {}
 
     def normalise(self, filename):
         """
@@ -53,12 +56,10 @@ class CoverageData():
         # check in self.files cache
         if filename not in self.files:
             self.files[filename] = None
-
             # find coverage data in the parsed JSON coverage file
-            for data in self.elements:
-                if self.normalise(data) == filename:
-                    # create FileCoverage with the data
-                    self.files[filename] = FileCoverage(filename, self.elements[data])
+            if filename in self.elements:
+                # create FileCoverage with the data
+                self.files[filename] = FileCoverage(filename, self.elements[filename])
         return self.files[filename]
 
 
@@ -143,7 +144,5 @@ class FileCoverage():
         if name in methods:
             if not self.is_parsed():
                 self.parse()
-
             return getattr(self, name)
-
         raise AttributeError()

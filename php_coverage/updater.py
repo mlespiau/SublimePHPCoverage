@@ -36,16 +36,16 @@ class ViewUpdater():
             icon='bookmark',
         )
 
-        try:
-            percentage = 100 * coverage.covered / float(coverage.statements)
-        except ZeroDivisionError:
-            percentage = 0
+        # try:
+        #     percentage = 100 * coverage.covered / float(coverage.statements)
+        # except ZeroDivisionError:
+        #     percentage = 0
 
-        status = '%d/%d lines (%.2f%%)' % (
-            coverage.covered, coverage.statements, percentage)
-        debug_message('Code coverage: %s' % status)
-        view.set_status(
-            'SublimePHPCoveragePercentage', 'Code coverage: %s' % status)
+        # status = '%d/%d lines (%.2f%%)' % (
+        #     coverage.covered, coverage.statements, percentage)
+        # debug_message('Code coverage: %s' % status)
+        # view.set_status(
+            # 'SublimePHPCoveragePercentage', 'Code coverage: %s' % status)
 
     def remove(self, view):
         view.erase_regions('SublimePHPCoverageBad')
